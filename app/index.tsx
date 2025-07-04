@@ -1,10 +1,8 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, JSX } from "react";
 import {
   View,
   Text,
   StyleSheet,
-  Alert,
-  TouchableOpacity,
   SafeAreaView,
   Dimensions,
   StatusBar,
@@ -14,16 +12,8 @@ import {
   AppStateStatus,
 } from "react-native";
 import { Image } from "expo-image";
-import * as Device from "expo-device";
 
 const { width, height } = Dimensions.get("window");
-
-// Types and Interfaces
-interface BluetoothDevice {
-  id: string;
-  name: string;
-  address: string;
-}
 
 interface GifMapType {
   [key: string]: ImageSourcePropType;
@@ -33,16 +23,16 @@ type NumberKey = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
 
 // GIF mapping - replace these with your actual GIF files
 const GIF_MAP: GifMapType = {
-  "1": require("../assets/gifs/gif1.gif"),
-  "2": require("../assets/gifs/gif2.gif"),
-  "3": require("../assets/gifs/gif3.gif"),
-  "4": require("../assets/gifs/gif4.gif"),
-  "5": require("../assets/gifs/gif5.gif"),
-  "6": require("../assets/gifs/gif6.gif"),
-  "7": require("../assets/gifs/gif7.gif"),
-  "8": require("../assets/gifs/gif8.gif"),
-  "9": require("../assets/gifs/gif9.gif"),
-  "0": require("../assets/gifs/gif0.gif"),
+  "1": require("../assets/gifs/alastor_take_over.gif"),
+  "2": require("../assets/gifs/vox_eye_roll.gif"),
+  "3": require("../assets/gifs/vox_face_1.gif"),
+  "4": require("../assets/gifs/vox_idle_look.gif"),
+  "5": require("../assets/gifs/vox_red_eye.gif"),
+  "6": require("../assets/gifs/error_screen_1.gif"),
+  "7": require("../assets/gifs/error_screen_2.gif"),
+  "8": require("../assets/gifs/error_screen_3.gif"),
+  "9": require("../assets/gifs/gif2.gif"), // meme cat 
+  "0": require("../assets/gifs/gif0.gif"), // extra
 };
 
 // Placeholder GIF for testing
@@ -124,6 +114,12 @@ export default function GifNumberPadApp(): JSX.Element {
     console.log("Key press event:", event.nativeEvent);
     const key = event.nativeEvent.key;
 
+      // Prevent Enter key from doing anything
+  if (key === 'Enter') {
+    event.preventDefault();
+    return;
+  }
+
     setDebugInfo(`Key pressed: "${key}"`);
 
     if (/^[0-9]$/.test(key)) {
@@ -148,23 +144,9 @@ export default function GifNumberPadApp(): JSX.Element {
     }
   };
 
-  const testNumberPress = (number: NumberKey): void => {
-    handleNumberPress(number);
-  };
-
-  const renderDebugInfo = (): JSX.Element => (
-    <View style={styles.debugContainer}>
-      <Text style={styles.debugText}>{debugInfo}</Text>
-      <Text style={styles.debugText}>
-        Buffer: "{hiddenInput}" ({hiddenInput.length} chars)
-      </Text>
-      <Text style={styles.debugText}>Selected: {lastPressed || "none"}</Text>
-    </View>
-  );
-
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#000" />
+      <StatusBar hidden={true} />
 
       {/* Hidden input field to capture Bluetooth keyboard input */}
       <TextInput
@@ -182,24 +164,15 @@ export default function GifNumberPadApp(): JSX.Element {
         editable={isListening}
       />
 
-      {/* Debug Info */}
-      {renderDebugInfo()}
-
       {/* GIF Display Area */}
       {currentGif ? (
         <View style={styles.gifContainer}>
           <Image
             source={currentGif}
             style={styles.gif}
-            contentFit="contain"
+            contentFit="cover"
             transition={200}
           />
-          {/* <TouchableOpacity 
-            style={styles.closeButton}
-            onPress={() => setCurrentGif(null)}
-          >
-            <Text style={styles.closeButtonText}></Text>
-          </TouchableOpacity> */}
         </View>
       ) : (
         <View style={styles.waitingContainer}>
@@ -235,18 +208,6 @@ const styles = StyleSheet.create({
     height: 1,
     opacity: 0,
   },
-  debugContainer: {
-    padding: 10,
-    backgroundColor: "#222",
-    borderBottomWidth: 1,
-    borderBottomColor: "#333",
-  },
-  debugText: {
-    color: "#fff",
-    fontSize: 12,
-    fontFamily: "monospace",
-    opacity: 0.8,
-  },
   gifContainer: {
     flex: 1,
     justifyContent: "center",
@@ -255,23 +216,7 @@ const styles = StyleSheet.create({
   },
   gif: {
     width: width,
-    height: height * 0.7,
-  },
-  closeButton: {
-    position: "absolute",
-    top: 50,
-    right: 20,
-    backgroundColor: "rgba(0,0,0,0.7)",
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  closeButtonText: {
-    color: "#fff",
-    fontSize: 20,
-    fontWeight: "bold",
+    height: height,
   },
   waitingContainer: {
     flex: 1,
@@ -297,41 +242,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     textAlign: "center",
-  },
-  numberPadContainer: {
-    padding: 20,
-    alignItems: "center",
-  },
-  testModeText: {
-    color: "#fff",
-    fontSize: 14,
-    marginBottom: 20,
-    opacity: 0.7,
-  },
-  numberPad: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "center",
-    maxWidth: 300,
-  },
-  numberButton: {
-    width: 60,
-    height: 60,
-    backgroundColor: "#333",
-    margin: 5,
-    borderRadius: 30,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: "#555",
-  },
-  numberButtonPressed: {
-    backgroundColor: "#4CAF50",
-    borderColor: "#4CAF50",
-  },
-  numberButtonText: {
-    color: "#fff",
-    fontSize: 24,
-    fontWeight: "bold",
   },
 });
