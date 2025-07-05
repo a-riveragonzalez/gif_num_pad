@@ -12,27 +12,61 @@ import {
   AppStateStatus,
 } from "react-native";
 import { Image } from "expo-image";
+import { Video, ResizeMode } from 'expo-av';
 
 const { width, height } = Dimensions.get("window");
 
-interface GifMapType {
-  [key: string]: ImageSourcePropType;
+interface MediaMapType {
+  [key: string]: {
+    source: ImageSourcePropType | any;
+    type: 'gif' | 'mp4';
+  };
 }
 
 type NumberKey = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9";
 
-// GIF mapping - replace these with your actual GIF files
-const GIF_MAP: GifMapType = {
-  "1": require("../assets/gifs/alastor_take_over.gif"),
-  "2": require("../assets/gifs/vox_eye_roll.gif"),
-  "3": require("../assets/gifs/vox_face_1.gif"),
-  "4": require("../assets/gifs/vox_idle_look.gif"),
-  "5": require("../assets/gifs/vox_red_eye.gif"),
-  "6": require("../assets/gifs/error_screen_1.gif"),
-  "7": require("../assets/gifs/error_screen_2.gif"),
-  "8": require("../assets/gifs/error_screen_3.gif"),
-  "9": require("../assets/gifs/gif2.gif"), // meme cat 
-  "0": require("../assets/gifs/gif0.gif"), // extra
+// Combined media mapping - GIFs and MP4s
+const MEDIA_MAP: MediaMapType = {
+  "1": {
+    source: require("../assets/gifs/vox_eye_roll.gif"),
+    type: 'gif'
+  },
+  "2": {
+    source: require("../assets/gifs/vox_face_1.gif"),
+    type: 'gif'
+  },
+  "3": {
+    source: require("../assets/gifs/vox_red_eye.gif"),
+    type: 'gif'
+  },
+  "4": {
+    source: require("../assets/gifs/error_screen_1.gif"),
+    type: 'gif'
+  },
+  "5": {
+    source: require("../assets/gifs/error_screen_2.gif"),
+    type: 'gif'
+  },
+  "6": {
+    source: require("../assets/gifs/error_screen_3.gif"),
+    type: 'gif'
+  },
+  "7": {
+    source: require("../assets/videos/alator_take_over_m.mp4"), // Add your MP4 here
+    type: 'mp4'
+  },
+  "8": {
+    source: require("../assets/videos/laugh_1_m.mp4"), // Add your MP4 here
+    type: 'mp4'
+  },
+  "9": {
+    source: require("../assets/videos/red_eye.mp4"), // Add your MP4 here
+    type: 'mp4'
+  },
+  "0": {
+    source: require("../assets/gifs/vox_idle_look.gif"),
+    type: 'gif'
+  },
 };
 
 // Placeholder GIF for testing
@@ -40,9 +74,10 @@ const PLACEHOLDER_GIF: string =
   "https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif";
 
 export default function GifNumberPadApp(): JSX.Element {
-  const [currentGif, setCurrentGif] = useState<
-    ImageSourcePropType | string | null
-  >(null);
+  const [currentMedia, setCurrentMedia] = useState<{
+    source: ImageSourcePropType | any | string | null;
+    type: 'gif' | 'mp4' | 'placeholder';
+  } | null>(null);
   const [isListening, setIsListening] = useState<boolean>(false);
   const [lastPressed, setLastPressed] = useState<NumberKey | null>(null);
   const [hiddenInput, setHiddenInput] = useState<string>("");
@@ -114,11 +149,11 @@ export default function GifNumberPadApp(): JSX.Element {
     console.log("Key press event:", event.nativeEvent);
     const key = event.nativeEvent.key;
 
-      // Prevent Enter key from doing anything
-  if (key === 'Enter') {
-    event.preventDefault();
-    return;
-  }
+    // Prevent Enter key from doing anything
+    if (key === "Enter") {
+      event.preventDefault();
+      return;
+    }
 
     setDebugInfo(`Key pressed: "${key}"`);
 
@@ -134,13 +169,47 @@ export default function GifNumberPadApp(): JSX.Element {
     setLastPressed(number);
     setDebugInfo(`✅ Number ${number} detected!`);
 
-    // Get the corresponding GIF
-    const gif = GIF_MAP[number];
-    if (gif) {
-      setCurrentGif(gif);
+    // Get the corresponding media
+    const media = MEDIA_MAP[number];
+    if (media) {
+      setCurrentMedia({
+        source: media.source,
+        type: media.type
+      });
     } else {
       // Use placeholder for testing
-      setCurrentGif(PLACEHOLDER_GIF);
+      setCurrentMedia({
+        source: PLACEHOLDER_GIF,
+        type: 'placeholder'
+      });
+    }
+  };
+
+  const renderMedia = () => {
+    if (!currentMedia) return null;
+
+    if (currentMedia.type === 'mp4') {
+      return (
+        <Video
+          source={currentMedia.source}
+          style={styles.media}
+          shouldPlay={true}
+          isLooping={true}
+          isMuted={false}
+          resizeMode={ResizeMode.COVER}
+          useNativeControls={false}
+        />
+      );
+    } else {
+      // Render GIF or placeholder
+      return (
+        <Image
+          source={currentMedia.source}
+          style={styles.media}
+          contentFit="cover"
+          transition={200}
+        />
+      );
     }
   };
 
@@ -162,17 +231,15 @@ export default function GifNumberPadApp(): JSX.Element {
         contextMenuHidden={true}
         selectTextOnFocus={false}
         editable={isListening}
+        returnKeyType="done"
+        blurOnSubmit={false}
+        onSubmitEditing={() => {}}
       />
 
-      {/* GIF Display Area */}
-      {currentGif ? (
-        <View style={styles.gifContainer}>
-          <Image
-            source={currentGif}
-            style={styles.gif}
-            contentFit="cover"
-            transition={200}
-          />
+      {/* Media Display Area */}
+      {currentMedia ? (
+        <View style={styles.mediaContainer}>
+          {renderMedia()}
         </View>
       ) : (
         <View style={styles.waitingContainer}>
@@ -204,17 +271,18 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: -1000,
     left: -1000,
-    width: 1,
-    height: 1,
+    width: 0,
+    height: 0,
     opacity: 0,
+    zIndex: -1,
   },
-  gifContainer: {
+  mediaContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     position: "relative",
   },
-  gif: {
+  media: {
     width: width,
     height: height,
   },
